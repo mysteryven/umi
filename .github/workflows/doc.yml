@@ -43,22 +43,19 @@ jobs:
           cache: 'pnpm'
 
       # We use week in the turbo cache key to keep the cache from infinitely growing
-      - name: Get cache expires mark (non-windows)
-        if: runner.os != 'Windows'
-        run: echo "EXPIRES_WEEK_MARK=$(date +%U)" >> $GITHUB_OUTPUT
-      - name: Get cache expires mark (windows)
-        if: runner.os == 'Windows'
-        run: echo "EXPIRES_WEEK_MARK=$(date +%U)" >> $env:GITHUB_OUTPUT
+      - name: Get cache expires mark
+        id: get-week
+        run: echo "WEEK=$(date +%U)" >> $GITHUB_OUTPUT
 
       - name: Turbo Cache
         id: turbo-cache
         uses: actions/cache@v3
         with:
           path: .turbo
-          key: turbo-${{ github.job }}-${{ runner.os }}-node${{ matrix.node-version }}-${{ github.ref_name }}-${{ env.EXPIRES_WEEK_MARK }}-${{ github.sha }}
+          key: turbo-${{ github.job }}-${{ runner.os }}-node${{ matrix.node-version }}-${{ github.ref_name }}-${{ steps.get-week.outputs.WEEK }}-${{ github.sha }}
           restore-keys: |
             turbo-${{ github.job }}-${{ runner.os }}-node${{ matrix.node-version }}-
-            turbo-${{ github.job }}-${{ runner.os }}-node${{ matrix.node-version }}-${{ github.ref_name }}-${{ env.EXPIRES_WEEK_MARK }}-
+            turbo-${{ github.job }}-${{ runner.os }}-node${{ matrix.node-version }}-${{ github.ref_name }}-${{ steps.get-week.outputs.WEEK }}-
 
       - name: Install dependencies
         run: pnpm i
