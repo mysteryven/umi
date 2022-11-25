@@ -23,7 +23,10 @@
   "dependencies": {
     "@babel/runtime": "7.18.9"
   },
-  "peerDependencies": {},
+  "peerDependencies": {
+    "vue": ">=3.2.31",
+    "vue-router": ">=4.0.12"
+  },
   "publishConfig": {
     "access": "public"
   },
