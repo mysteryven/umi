@@ -35,17 +35,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2.2.4
+
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
           registry-url: 'https://registry.npmjs.org/'
           cache: 'pnpm'
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2.2.4
-        with:
-          run_install: false
 
       # We use week in the turbo cache key to keep the cache from infinitely growing
       - name: Get cache expires mark
