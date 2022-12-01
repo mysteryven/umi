@@ -45,11 +45,16 @@ interface ITemplateParams {
   author: string;
   withHusky: boolean;
   extraNpmrc: string;
+  antdVersion: string;
 }
+
+const AntdV4 = '^4.20.7';
+const AntdV5 = '^5.0.0';
 
 export default async ({ cwd, args }: { cwd: string; args: IArgs }) => {
   const [name] = args._;
   let npmClient = 'pnpm' as NpmClient;
+  let antdVersion = AntdV4;
   let registry = 'https://registry.npmjs.org/';
   let appTemplate = 'app';
   const { username, email } = await getGitInfo();
@@ -67,6 +72,16 @@ export default async ({ cwd, args }: { cwd: string; args: IArgs }) => {
             { title: 'Simple App', value: 'app' },
             { title: 'Ant Design Pro', value: 'max' },
             { title: 'Vue Simple App', value: 'vue-app' },
+          ],
+          initial: 0,
+        },
+        {
+          type: (prev: string) => (prev === 'max' ? 'select' : false),
+          name: 'antdVersion',
+          message: 'Pick Antd Version',
+          choices: [
+            { title: 'V4 (^4.20.7)', value: AntdV4 },
+            { title: 'V5 (^5.0.0)', value: AntdV5 },
           ],
           initial: 0,
         },
@@ -106,6 +121,7 @@ export default async ({ cwd, args }: { cwd: string; args: IArgs }) => {
     npmClient = response.npmClient;
     registry = response.registry;
     appTemplate = response.appTemplate;
+    antdVersion = response.antdVersion;
   }
 
   const pluginPrompts = [
@@ -166,6 +182,7 @@ export default async ({ cwd, args }: { cwd: string; args: IArgs }) => {
           // suppress pnpm v7 warning
           extraNpmrc:
             npmClient === 'pnpm' ? `strict-peer-dependencies=false` : '',
+          antdVersion,
         } as ITemplateParams),
     questions: args.default ? [] : args.plugin ? pluginPrompts : [],
   });
