@@ -2,11 +2,16 @@ import { getConfig } from '@umijs/bundler-webpack';
 import { MFSU_NAME } from '@umijs/bundler-webpack/dist/constants';
 import { Env } from '@umijs/bundler-webpack/dist/types';
 import { DEFAULT_MF_NAME, MF_DEP_PREFIX } from '@umijs/mfsu';
-import { logger, setNoDeprecation } from '@umijs/utils';
+import { lodash, logger, setNoDeprecation } from '@umijs/utils';
 import { dirname, join, resolve } from 'path';
 import { isMainThread, parentPort } from 'worker_threads';
 import { DepBuilderInWorker } from './depBuilder';
 import { getDevConfig } from './getConfig';
+
+interface IWorkerData {
+  args?: Record<string, any>;
+  deps?: any[];
+}
 
 if (isMainThread) {
   throw Error('MFSU-eager builder can only be called in a worker thread');
@@ -15,6 +20,7 @@ if (isMainThread) {
 // Prevent deprecated warnings in Worker
 setNoDeprecation();
 setupWorkerEnv();
+const argsPromise = setupArgsPromise();
 
 const bundlerWebpackPath = dirname(require.resolve('@umijs/bundler-webpack'));
 
@@ -45,14 +51,17 @@ async function start() {
   }
 
   // 启动一个 Service 的成本比较高(2-3秒), 所以 worker 中的 build 通过 message 来驱动, 以此来复用 service.
-  parentPort!.on('message', (buildReq) => {
-    bufferedRequest.push(buildReq);
-    scheduleBuild();
+  parentPort!.on('message', ({ deps: buildReq }: IWorkerData) => {
+    if (Array.isArray(buildReq)) {
+      bufferedRequest.push(buildReq);
+      scheduleBuild();
+    }
   });
 
   const start = Date.now();
 
-  const opts: any = await getDevConfig();
+  const args = await argsPromise;
+  const opts: any = await getDevConfig(args);
 
   const cacheDirectoryPath = resolve(
     opts.rootDir || opts.cwd,
@@ -88,6 +97,7 @@ async function start() {
 
   const depEsBuildConfig = {
     extraPostCSSPlugins: opts.config?.extraPostCSSPlugins || [],
+    define: lodash.mapValues(opts.config?.define, (v) => JSON.stringify(v)),
   };
 
   const tmpBase =
@@ -124,4 +134,14 @@ function setupWorkerEnv() {
   process.env.DID_YOU_KNOW = 'none';
   // 此环境变量用于插件判断运行环境, 如果有次变量不去启动一些服务
   process.env.IS_UMI_BUILD_WORKER = 'true';
+}
+
+function setupArgsPromise() {
+  return new Promise<Record<string, any>>((resolve) => {
+    parentPort!.on('message', ({ args }: IWorkerData) => {
+      if (args) {
+        resolve(args);
+      }
+    });
+  });
 }

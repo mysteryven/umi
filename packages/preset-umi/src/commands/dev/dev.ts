@@ -282,6 +282,7 @@ PORT=8888 umi dev
           currentWorker.on('exit', () => {
             initWorker();
           });
+          currentWorker.postMessage({ args: api.args });
           return currentWorker;
         };
         currentWorker = initWorker();
